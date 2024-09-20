@@ -8,43 +8,61 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+// ipv4 and ipv6
 struct addrinfo*
 get_ips(const char *hostname)
 {
     int             status;
-    struct addrinfo hint;
+    struct addrinfo hints;
     struct addrinfo *list;
     struct addrinfo *list_head;
     
-    memset(&hint, 0, sizeof(hint));   // reset to zero all values of struct
-    hint.ai_family = AF_INET;         // allows IPv4 only
+    memset(&hints, 0, sizeof(hints));   // reset to zero all values of struct
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-    status = getaddrinfo(hostname, NULL, &hint, &list);
+    status = getaddrinfo(hostname, NULL, &hints, &list);
     if (0 != status) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         exit(EXIT_FAILURE);
     }
 
-    list_head = list;
-    while (NULL != list_head->ai_next) {
-        // printf("struct addrinfo info:\n");
-        // printf("int ai_flags: %d\n", list_head->ai_flags);
-        // printf("int ai_family: %d\n", list_head->ai_family);
-        // printf("int ai_socktype: %d\n", list_head->ai_socktype);
-        // printf("int ai_protocol: %d\n", list_head->ai_protocol);
-        // printf("socklen_t ai_addrlen: %u\n", list_head->ai_addrlen);
-        // printf("struct sockaddr *ai_addr info:\n");
-        // printf("\tsa_family_t sa_family: %u\n", list_head->ai_addr->sa_family);
-        // printf("\tchar sa_data[]: %s\n", list_head->ai_addr->sa_data);
-       
-        list_head = list_head->ai_next;
-    }
-
     return list;
 }
 
+// print all IPv4 and IPv6 addresses
 void
-print_unique_ip(struct addrinfo *list)
+print_ips(struct addrinfo *list)
+{
+    struct addrinfo *tmp;
+    char            ipstr[INET6_ADDRSTRLEN];
+    
+    printf("IP addresses:\n\n");
+
+    for (tmp = list; tmp != NULL; tmp = tmp->ai_next) {
+        void *addr;
+        char *ipver;
+
+        // get the pointer to the address itself
+        // different fields in IPv4 and IPv6
+        if (AF_INET == tmp->ai_family) {
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)tmp->ai_addr;
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+        } else {
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)tmp->ai_addr;
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+        }
+
+        inet_ntop(tmp->ai_family, addr, ipstr, sizeof ipstr);
+        printf("\t%s: %s\n", ipver, ipstr);
+    }
+}
+
+// ipv4 only
+void
+print_unique_ips(struct addrinfo *list)
 {
     struct addrinfo *curr;
     struct in_addr  ip_addr;
@@ -74,13 +92,11 @@ main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    const char      *hostname;
     struct addrinfo *list;
 
-    hostname = argv[1];
-    list = get_ips(hostname);
+    list = get_ips(argv[1]);
 
-    print_unique_ip(list);
+    print_ips(list);
 
     return EXIT_SUCCESS;
 }
