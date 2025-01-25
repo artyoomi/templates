@@ -5,6 +5,7 @@ import json
 import matplotlib.pyplot as plt
 import pytz
 import datetime as dt
+import numpy as np
 
 from matplotlib.widgets import CheckButtons
 
@@ -83,34 +84,33 @@ def main():
         data = json.load(f)
 
     # Store main plotting data
+    #
+    # NOTE:
+    # When we will get real data with request, we will get
+    # Reponse object, so to get json data json() method
+    # need to be executed with given Response object.
     times, temp_values, perc_values = parse_json(data)
 
-    scores = []
-
     # To use with check boxes
-    lines = []
+    scores = []
+    lines  = []
 
     # Create plot
     fig, ax1 = plt.subplots()
+
+    # Resize graph field
     fig.subplots_adjust(left=0.15, right=0.85, top=0.95, bottom=0.05)
 
     # Setup x axis
     ax1.set_xlabel("Time (current date)")
-    # Turn x axis labels on 45 degrees
     ax1.set_xticks([])
-    #ax1.tick_params(axis='x', rotation=45)
-    
+
     # Setup y (temperature) axis
     temp_color = "red"
     ax1.set_ylabel("Temperature (Celsius)", color=temp_color)
     ax1.tick_params(axis='y', labelcolor=temp_color)
     ax1.set_ylim(-5, 35)
 
-    # Plot temperature values
-    for score, values in temp_values.items():
-        lines.append(ax1.plot(times, values, label=score))
-        scores.append(score)
-        
     # Setup humidity y axis
     hum_color = "blue"
     ax2 = ax1.twinx()
@@ -118,25 +118,33 @@ def main():
     ax2.set_ylabel("Humidity (%)", color=hum_color)
     ax2.set_ylim(-5, 105)
     
-    # Plot all percent values
+    # Plot temperature values
+    for score, values in temp_values.items():
+        lines.append(ax1.plot(times, values, label=score))
+        scores.append(score)
+        
+    # Plot percent values
     for score, values in perc_values.items():
         lines.append(ax2.plot(times, values, label=score))
         scores.append(score)
+
+    x_min, x_max = ax1.get_xlim()
+    y_min, y_max = ax1.get_ylim()
 
     # Add legend
     fig.legend()
 
     # Make all lines invisible by default
     for line in lines: line[0].set_visible(False)
-    
+
     # Add check boxes field
     visibility = [False for _ in scores]
     check_boxes = CheckButtons(plt.axes([0.0, 0.0, 0.1, 0.45]),
                                scores,
                                actives=visibility)
 
-    # Callback function to set visible/unvisible graphs
-    def callback(label):
+    # Callback function to set visible/unvisible graph lines
+    def checkbox_callback(label: str) -> None:
         score_index = scores.index(label)
 
         visibility[score_index] = not visibility[score_index]
@@ -145,7 +153,42 @@ def main():
 
         plt.draw()
 
-    check_boxes.on_clicked(callback)
+    check_boxes.on_clicked(checkbox_callback)
+
+    # Add crosshair
+    crosshair_v, = ax1.plot([], [], color="gray", lw=1)
+    crosshair_h, = ax2.plot([], [], color="gray", lw=1)
+
+    def crosshair_callback(event) -> None:
+        if event.inaxes:
+            # Get cursor coordinates
+            x_cursor, y_cursor = event.xdata, event.ydata
+
+            # x = np.linspace(-88.3, 1854.3, len(times))
+            # y = np.linspace(   -5,     35, len(times))
+
+            # Find nearest point on line of data
+            # distances = np.sqrt((x - x_cursor)**2 + (y - y_cursor)**2)
+            # min_distance_idx = np.argmin(distances)
+            # min_distance = distances[min_distance_idx]
+
+            # print(event)
+
+            # print(f"x_min is {x_min} and x_max is {x_max}")
+            # print(f"y_min is {y_min} and y_max is {y_max}")
+
+            crosshair_v.set_data([x_cursor, x_cursor], [y_min, y_max])
+            crosshair_h.set_data([x_min, x_max], [y_cursor, y_cursor])
+        
+            # Redraw graph
+            fig.canvas.draw_idle()
+        else:
+            # If cursor out of graph => hide crosshair
+            crosshair_v.set_data([], [])
+            crosshair_h.set_data([], [])
+            fig.canvas.draw_idle()
+
+    fig.canvas.mpl_connect("motion_notify_event", crosshair_callback)
 
     plt.show()
 
