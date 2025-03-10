@@ -1,19 +1,23 @@
+import os
 import telebot
 import sqlite3
 
 
-TOKEN = ""
-ADMIN_ID = 0
+TOKEN    = os.getenv("TOKEN")
+ADMIN_ID = os.getenv("TGID")
 
 bot = telebot.TeleBot(TOKEN)
 
 # Connect to sqlite3 database
-users_db_conn = sqlite3.connect("users.db", check_same_thread=False)
+users_db_conn = sqlite3.connect("data/users.db", check_same_thread=False)
 db_cursor = users_db_conn.cursor()
 
 # Create table to store subscribers
-db_cursor.execute('''CREATE TABLE IF NOT EXISTS subscribers
-                     (user_id INTEGER PRIMARY KEY)''')
+db_cursor.execute('''
+    CREATE TABLE IF NOT EXISTS subscribers (
+        user_id INTEGER PRIMARY KEY
+        )
+''')
 users_db_conn.commit()
 
 # /start
@@ -36,7 +40,7 @@ def start(message):
 def subscribe(message):
     user_id = message.from_user.id
 
-    if user_id == ADMIN_ID:
+    if user_id == int(ADMIN_ID):
         # To enable admin subscription, comment this whole block of code (with if statement)
         bot.reply_to(message, "Админ не может быть подписан на рассылку 👨‍💻 (это можно изменить в коде бота при желании).")
         return

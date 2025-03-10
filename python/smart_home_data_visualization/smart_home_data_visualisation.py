@@ -75,8 +75,8 @@ def main():
     # # Construct src url
     # url = f"https://{DOMAIN}:{PORT}/{PATH}"
     
-    # # Get json from constructed url
-    # data = requests.post(url=url, headers={"Token":0})
+    # Get json from constructed url
+    # data = requests.post(url=url, headers={"Token": "0"}, verify=False)
 
     # Mock for a while
     data = ""
@@ -97,6 +97,7 @@ def main():
 
     # Create plot
     fig, ax1 = plt.subplots()
+    fig.canvas.manager.set_window_title("Dacha scores")
 
     # Resize graph field
     fig.subplots_adjust(left=0.15, right=0.85, top=0.95, bottom=0.05)
