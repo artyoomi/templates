@@ -80,7 +80,7 @@ def main():
 
     # Mock for a while
     data = ""
-    with open("test2.json") as f:
+    with open("test_data/test2.json") as f:
         data = json.load(f)
 
     # Store main plotting data
